@@ -1,0 +1,32 @@
+version: v1.0
+name: HandleBar sample project with Semaphore CICD
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: Install dependencies
+  task:
+    jobs:
+      - name: npm install
+        commands:
+          - checkout
+          - cache restore node-modules-$(checksum package-lock.json), node-modules-
+          - npm install
+          - cache store node-modules-$(checksum package-lock.json) node_modules
+      - name: Build site
+        task:
+          jobs:
+            - name: build
+              commands:
+                - checkout
+                - cache restore node-modules-$(checksum package-lock.json), node-modules-
+                - npm run build --prefix-path
+                - cache store website-build public
+      - name: Deploy to production
+        pipeline_file: production-deploy.yml
+        auto_promote_on:
+          - result: passed
+            branch:
+              - master
